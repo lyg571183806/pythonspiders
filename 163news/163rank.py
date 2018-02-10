@@ -1,68 +1,62 @@
 # -*- coding:utf-8 -*-
 import os
-import sys
-import urllib2
 import requests
 import re
 from lxml import etree
 
 
-def StringListSave(save_path, filename, slist):
+def save_file(save_path, filename, lists):
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     path = save_path+"/"+filename+".txt"
     with open(path, "w+") as fp:
-        for s in slist:
-            fp.write("%s\t\t%s\n" % (s[0].encode("utf8"), s[1].encode("utf8")))
+        for s in lists:
+            s11 = type(s)
+            fp.write("%s\t\t%s\n" % (str(s[0]).encode('utf8'), str(s[1]).encode('utf8')))
 
-def Page_Info(myPage):
-    '''Regex'''
-    mypage_Info = re.findall(r'<div class="titleBar" id=".*?"><h2>(.*?)</h2><div class="more"><a href="(.*?)">.*?</a></div></div>', myPage, re.S)
-    return mypage_Info
 
-def New_Page_Info(new_page):
-    '''Regex(slowly) or Xpath(fast)'''
-    # new_page_Info = re.findall(r'<td class=".*?">.*?<a href="(.*?)\.html".*?>(.*?)</a></td>', new_page, re.S)
-    # # new_page_Info = re.findall(r'<td class=".*?">.*?<a href="(.*?)">(.*?)</a></td>', new_page, re.S) # bugs
-    # results = []
-    # for url, item in new_page_Info:
-    #     results.append((item, url+".html"))
-    # return results
+def get_categories(content):
+    pattern = r'<div class="titleBar" id=".*?"><h2>(.*?)</h2><div class="more"><a href="(.*?)">.*?</a></div></div>'
+    return re.findall(pattern, content, re.S)
+
+
+def get_news(new_page):
     dom = etree.HTML(new_page)
     new_items = dom.xpath('//tr/td/a/text()')
     new_urls = dom.xpath('//tr/td/a/@href')
     assert(len(new_items) == len(new_urls))
+
     #返回新闻标题和新闻链接的一个元祖
     return zip(new_items, new_urls)
 
-def Spider(url):
+
+def spider(url):
     i = 0
-    print "downloading ", url
+    print("downloading ", url)
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) '
+                      'Chrome/61.0.3163.100 Safari/537.36'
     }
     response = requests.get(url, headers=headers).content
-    myPage = response.decode("gbk")
-    # myPage = urllib2.urlopen(url).read().decode("gbk")
-    # print type(myPage)
-    # return
-    myPageResults = Page_Info(myPage)
+    page_content = response.decode('gbk');
+
+    categories = get_categories(page_content)
     save_path = u"网易新闻抓取"
     filename = str(i)+"_"+u"新闻排行榜"
-    StringListSave(save_path, filename, myPageResults)
+    save_file(save_path, filename, categories)
+
     i += 1
-    for item, url in myPageResults:
-        print "downloading ", url
-        new_page = requests.get(url).content.decode("gbk")
-        # new_page = urllib2.urlopen(url).read().decode("gbk")
-        newPageResults = New_Page_Info(new_page)
-        filename = str(i)+"_"+item
-        StringListSave(save_path, filename, newPageResults)
+    for category, url in categories:
+        print("downloading ", url)
+        page_content = requests.get(url).content.decode('gbk')
+        news = get_news(page_content)
+        filename = str(i)+"_"+category
+        save_file(save_path, filename, news)
         i += 1
 
 
 if __name__ == '__main__':
-    print "start"
+    print("start")
     start_url = "http://news.163.com/rank/"
-    Spider(start_url)
-    print "end"
+    spider(start_url)
+    print("end")
