@@ -2,6 +2,7 @@
 import os
 import requests
 import re
+import codecs
 from lxml import etree
 
 
@@ -9,10 +10,10 @@ def save_file(save_path, filename, lists):
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     path = save_path+"/"+filename+".txt"
-    with open(path, "w+") as fp:
+    with codecs.open(path, "w+", "utf-8") as fp:
         for s in lists:
-            s11 = type(s)
-            fp.write("%s\t\t%s\n" % (str(s[0]).encode('utf8'), str(s[1]).encode('utf8')))
+            fp.write("%s\t\t%s\n" % (s[0], s[1]))
+    fp.close()
 
 
 def get_categories(content):
