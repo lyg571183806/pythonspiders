@@ -52,7 +52,7 @@ class QSBK:
         return page_stories
 
     # 加载并提取页面的内容，加入到列表中
-    def loadPage(self):
+    def load_page(self):
         if self.enable:
             if len(self.stories) < 2:
                 page_stories = self.get_page_items(self.page_index)
@@ -61,10 +61,10 @@ class QSBK:
                     self.page_index += 1
 
     # 显示段子信息
-    def getOneStroy(self, page_stories, page):
+    def get_one_stroy(self, page_stories, page):
         for story in page_stories:
             input = raw_input()
-            self.loadPage()
+            self.load_page()
             if input == 'Q':
                 self.enable = False
                 return
@@ -73,14 +73,14 @@ class QSBK:
     def start(self):
         print u"正在去读糗事百科，按回车查看段子，Q退出"
         self.enable = True
-        self.loadPage()
+        self.load_page()
         new_page = 0
         while self.enable:
             if len(self.stories) > 0:
                 page_stories = self.stories[0]
                 new_page += 1
                 del self.stories[0]
-                self.getOneStroy(page_stories, new_page)
+                self.get_one_stroy(page_stories, new_page)
 
 
 spider = QSBK()
