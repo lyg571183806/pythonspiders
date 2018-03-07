@@ -58,4 +58,5 @@ if __name__ == '__main__':
     movies = get_movies('shenzhen')
 
     import json
+    # separators元祖第一个元素为项分割符，第二个为每项里的元素分隔符
     print('%s' % json.dumps(movies, indent=4, separators=(',', ':')))
