@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 __author__ = 'yunshu'
-import urllib
+
 import urllib2
 import re
 
@@ -41,7 +41,7 @@ class BDTB:
             url = self.baseUrl + self.seeLZ + '&pn=' + str(pageNum)
             request = urllib2.Request(url, headers=self.headers)
             response = urllib2.urlopen(request)
-            # print response.read()
+
             return response.read()
         except urllib2.URLError, e:
             if hasattr(e, 'reason'):
@@ -97,9 +97,11 @@ class BDTB:
 
     def start(self):
         indexPage = self.getPage(1)
+
         if indexPage == None:
             return
         pageNum = self.getPageNum(indexPage)
+
         if (pageNum == None):
             print
             "URL已失效，请重试"
