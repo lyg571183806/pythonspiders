@@ -31,7 +31,7 @@ class MovieParser(HTMLParser):
             return None
 
         if tag == 'li' and _attr(attrs, 'data-title') and _attr(attrs, 'data-score') and _attr(attrs, 'data-region') \
-                and _attr(attrs, 'data-actors'):
+                and _attr(attrs, 'data-actors') and _attr(attrs, 'data-category') == 'nowplaying':
             movie = {
                 'title': _attr(attrs, 'data-title'),
                 'score': _attr(attrs, 'data-score'),
@@ -44,7 +44,8 @@ class MovieParser(HTMLParser):
 
 def get_movies(city):
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, '
+                      'like Gecko) Chrome/60.0.3112.113 Safari/537.36'
     }
     url = 'https://movie.douban.com/cinema/nowplaying/'+city
     response = requests.get(url, headers=headers)
@@ -55,8 +56,12 @@ def get_movies(city):
 
 
 if __name__ == '__main__':
-    movies = get_movies('shenzhen')
+    city = ''
+    while city == '':
+        city = raw_input('please enter city:')
+        if city != '':
+            movies = get_movies(city)
 
-    import json
-    # separators元祖第一个元素为项分割符，第二个为每项里的元素分隔符
-    print('%s' % json.dumps(movies, indent=4, separators=(',', ':')))
+            import json
+            # separators元祖第一个元素为项分割符，第二个为每项里的元素分隔符
+            print('%s' % json.dumps(movies, indent=4, separators=(',', ':')))
