@@ -1,108 +1,125 @@
 # -*- coding:utf-8 -*-
 
-import urllib
-import urllib2
+import requests
 import re
 import os
 
-#抓取淘女郎的信息
+'''
+抓取淘女郎（http://mm.taobao.com/json/request_top_list.htm）的信息并将图片保存到本地
+根据https://cuiqingcai.com/1001.html修改
+'''
+
+
 class Spider:
     def __init__(self):
         self.baseURL = 'http://mm.taobao.com/json/request_top_list.htm'
         self.headers = {
-            'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) '
+                          'Chrome/60.0.3112.113 Safari/537.36'
         }
-    def getPage(self, pageNum):
-        try:
-            geturl = 'https://mm.taobao.com/json/request_top_list.htm?page=' + str(pageNum)
-            # print geturl
-            # httpHandler = urllib2.HTTPHandler(debuglevel=1)
-            # httpsHandler = urllib2.HTTPSHandler(debuglevel=1)
-            # opener = urllib2.build_opener(httpHandler, httpsHandler)
-            # urllib2.install_opener(opener)
-            request = urllib2.Request(geturl, headers=self.headers)
-            response = urllib2.urlopen(request)
-            return response.read().decode('gbk')
-        except urllib2.URLError, e:
-            if hasattr(e, 'reason'):
-                print "链接淘女郎失败，失败原因：" + e.reason
-                return None
 
-    def getDetailPage(self, pageUrl):
-        location = pageUrl.split('/')
-        user_id = location.pop().replace('.htm','')
-        url = 'https://mm.taobao.com/self/model_info.htm?user_id='+user_id
-        pageinfo  =urllib2.urlopen(url)
-        return pageinfo.read().decode('gbk')
+    def get_page(self, page_num):
+        """
+        获取整个网页内容
+        :param page_num:
+        :return:
+        """
 
-    def getBrief(self, detailPage):
-        # re.compile('')
-        pass
+        geturl = 'https://mm.taobao.com/json/request_top_list.htm?page=' + str(page_num)
+        response = requests.get(geturl, headers=self.headers)
 
-    def saveImg(self, imageURL, fileName):
-        u = urllib.urlopen(imageURL)
-        data = u.read()
-        # print fileName
-        # return
-        f = open(fileName, 'wb')
-        f.write(data)
-        print "正在偷偷地保存了他的一张图片"
-        f.close()
+        if response.status_code != 200:
+            print "链接淘女郎失败，失败原因：" +response.raise_for_status
+            return None
 
-    def saveIcon(self, imageURL, name):
-        fileName = name + '/icon.jpg'
-        self.saveImg(imageURL, fileName)
+        return response.content.decode('gbk')
 
-    def makeDir(self, path):
+    # 获取个人经历 todo:完善
+    def get_experience(self, url):
+        response = requests.get(url, headers=self.headers)
+        page = response.content.decode('gbk')
+        print page
+        pattern = re.compile('<div class="mm-p-info mm-p-experience-info">.*?</h4>(.*?)</div>', re.S)
+        result = re.search(pattern, page)
+        if result:
+            return result.group(1)
+        else:
+            return None
+
+    def save_img(self, img_url, file_name):
+        response = requests.get(img_url, headers=self.headers)
+        data = response.content
+
+        with open(file_name, 'wb') as f:
+            f.write(data)
+            print "正在偷偷地保存了他的一张图片"
+            f.close()
+
+
+    # 保存头像
+    def save_icon(self, image_url, name):
+        file_name = name + '/icon.jpg'
+        self.save_img(image_url, file_name)
+
+    # 保存文本信息
+    def save_text_file(self, content, name):
+        file_name = name + '.txt'
+        f = open(file_name, 'w+')
+        print "正在偷偷地保存她的个人信息为：", file_name
+        f.write(content.encode('utf-8'))
+
+    def make_dir(self, path):
         path = path.strip()
-        isExists = os.path.exists(path)
-        if not isExists:
-            print '偷偷地创建了名字叫做',path,'的文件夹'
+        is_exists = os.path.exists(path)
+        if not is_exists:
+            print '偷偷地创建了名字叫做', path, '的文件夹'
             os.makedirs(path)
             return True
         else:
-            print "已经创建了",path,"文件夹"
+            print "已经创建了", path, "文件夹"
             return False
 
-    def saveTextFile(self, content, name):
-        fileName = name + '.txt'
-        f = open(fileName, 'w+')
-        print "正在偷偷地保存她的个人信息为：",fileName
-        f.write(content.encode('utf-8'))
-
-    def getContents(self, pageNum):
-        page = self.getPage(pageNum)
-        # print contents
-        pattern = re.compile('<div class="list-item".*?pic-word.*?<a href="(.*?)".*?<img src="(.*?)".*?<a class="lady-name.*?>(.*?)</a>.*?<strong>(.*?)</strong>.*?<span>(.*?)</span>', re.S)
+    # 获取某页内容（返回list）
+    def get_page_content(self, page_num):
+        page = self.get_page(page_num)
+        # re.S它表示“.”（不包含外侧双引号，下同）的作用扩展到整个字符串，包括“\n”
+        pattern = re.compile('<div class="list-item".*?pic-word.*?<a href="(.*?)".*?<img src="(.*?)".*?'
+                             '<a class="lady-name" href="(.*?)" target.*?>(.*?)</a>.*?<strong>(.*?)'
+                             '</strong>.*?<span>(.*?)</span>', re.S)
         items = re.findall(pattern, page)
         contents = []
         for item in items:
-            contents.append(['http:'+item[0],'http:'+item[1],item[2],item[3],item[4]])
+            contents.append(('http:'+item[0], 'http:'+item[1], 'http:'+item[2], item[3], item[4], item[5]))
 
         return contents
 
-    def savePageInfo(self, pageNum):
-        contents = self.getContents(pageNum)
-        for item in contents:
-            print "发现一位模特，名字叫",item[2],"，芳龄",item[3],"，她在",item[4],"头像地址",item[1]
-            print "正在偷偷地保存她的信息"
-            print "又意外地发现她的个人地址是",item[0]
+    # 保存某也的内容
+    def save_page_info(self, page_num):
+        contents = self.get_page_content(page_num)
 
-            #个人详情页
-            detailUrl = item[0]
-            detailPage = self.getDetailPage(detailUrl)
-            #获取个人简介
-            brief = self.getBrief(detailPage)
-            # self.makeDir(item[2])
-            #保存个人简介
-            # self.saveTextFile(content, item[2])
-            #保存个人头像
-            # self.saveIcon(item[1], item[2])
+        for item in contents:
+            print "发现一位模特，名字叫", item[3], "，芳龄", item[4], "，她在", item[5], "头像地址", item[1]
+            print "正在偷偷地保存她的信息"
+            print "又意外地发现她的个人资料地址：" , item[2]
+
+            # expericence = self.get_experience(item[2])
+            # print expericence
+
+            self.make_dir(item[3])
+
+            # 保存个人简介
+            # self.save_text_file(content, item[3])
+
+            # 保存个人头像
+            self.save_icon(item[1], item[3])
 
     def start(self, start, end):
         for i in range(start, end+1):
-            print "正在偷偷寻找第",i,"个地方，看看MM在不在"
-            self.savePageInfo(i)
+            print "正在偷偷寻找第", i, "个地方，看看MM在不在"
+            self.save_page_info(i)
 
-spider = Spider()
-spider.start(1, 2)
+
+if __name__ == '__main__':
+    spider = Spider()
+    # 抓取第一页的数据
+    spider.start(1, 1)
